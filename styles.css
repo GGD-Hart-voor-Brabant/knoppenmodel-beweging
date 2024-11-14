@@ -1,0 +1,35 @@
+.quarto-title > h1.title {
+  color: #1a2c54;
+}
+
+
+.blauweBanner > h2 {
+  background-color:#1a2c54;
+  color: #FFFFFF;
+  padding-left: 1em;
+  padding-top: .5rem;
+}
+
+.uitlichten > h3 {
+  color: #63b450;
+  font-size: 20px;
+}
+
+.cell-output-display {
+  margin-bottom: 1em;
+}
+
+/* Meer ruimte onder sommige divs */
+.legeRegel {
+  margin-bottom: 3em;
+}
+
+
+.leaflet-container {
+    background: #FFF;
+}
+
+/*labels van radiobuttons 80% ruimte gegeven zodat tekst niet over de rand gaat */
+.awesome-radio label{
+width: 80%;
+}

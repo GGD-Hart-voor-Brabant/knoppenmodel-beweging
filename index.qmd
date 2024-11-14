@@ -1,0 +1,352 @@
+---
+title: "Knoppenmodel beweging"
+filters: 
+  - shinylive
+execute:
+  echo: false
+  warning: false
+params:
+  excel_figuur_beweging: data/input_grafiek_quarto.xlsx
+resource_files:
+- "data/dataframe_knoppenmodel_mentale_gezondheid_2024-08-26.RData"
+- "data/Scenario_2024-08-26.RData"
+---
+
+
+
+::: column-screen-insert
+![](images/afbeelding-groen.jpg){fig-alt="Sportende mensen in een groene omgeving"}
+:::
+
+## Mentale gezondheid & Beweging {.blauweBanner}
+
+Sporten en bewegen is goed voor je. Naast de algemeen bekende lichamelijke effecten heeft bewegen ook effecten op de mentale gezondheid \[[Mulier Instituut](https://www.kennisbanksportenbewegen.nl/?file=10003&m=1589881893&action=file.download){target="_blank"}, [WHO](https://www.who.int/publications/i/item/9789240015128){target="_blank"}, [Trimbos](https://www.trimbos.nl/kennis/mentale-gezondheid-preventie/expertisecentrum-mentale-gezondheid/bewegen-en-mentale-gezondheid/effecten/){target="_blank"}\]. Dit laat onderstaande figuur met resultaten van de GGD gezondheidsmonitor Volwassenen en Ouderen 2022 ook zien. Mensen die gemiddeld meer bewegen hebben zijn minder vaak eenzaam of gestresst, hebben een lager risico op angststoornissen of depressies en hebben minder vaak psychische klachten. Welke factoren zorgen nog meer voor een betere psychische gezondheid? Oftewel:
+
+### Aan welke knoppen kan een gemeente draaien om de mentale gezondheid van haar bevolking te verbeteren? {.uitlichten}
+
+::: legeRegel
+:::
+
+::: panel-tabset
+## Grafiek
+
+```{r echo=FALSE, message=F}
+
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(gt)
+library(plotly)
+library(shinylive)
+
+# Plot met aantal uur beweging vs mentale gezondheid
+data_plot_beweging <- read_excel(params$excel_figuur_beweging)
+
+data_plot_beweging<- data_plot_beweging %>% 
+  mutate(Categorie = factor(Categorie, levels = data_plot_beweging$Categorie),
+         Groep = factor(Groep))
+
+## NB: waarom zorg ggplotly ervoor dat de kolom breedtes nu weer verschillend zijn?? (JVA)
+
+plot <- ggplot(data_plot_beweging, aes(x = Categorie, y = `Gemiddeld aantal uur fietsen en/of wandelen en/of sporten per week`, fill = Groep)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+    facet_grid(~Groep, scales = "free_x", space = "free") +
+    labs(title = "Relatie tussen beweging en mentale gezondheid",
+         x = "",
+         y = "Gemiddeld aantal uur fietsen en/of wandelen \nen/of sporten per week",
+         fill = "Mentale gezondheid") +
+    scale_fill_manual(
+      values = c("Eenzaam" = "#fec80f", "Psychische klachten" = "#009bd9", 
+                 "Risico op angststoornis of depressie" = "#1a2c54",
+                 "Stress" = "#63b450"))+ theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          strip.background = element_blank(),
+          panel.grid = element_blank(), 
+          axis.ticks = element_blank(),
+          strip.text.x = element_blank())
+
+```
+
+```{r, fig.width= 10}
+
+plot
+  
+```
+
+## Tabel
+
+```{r tabel_zorgen, echo=FALSE, message=F}
+# Bewerk data
+data_tabel_beweging <- data_plot_beweging %>% 
+  rename("Mentale gezondheid" = indicator) %>% 
+  select(-c(Groep, Categorie))
+
+# Tabel
+gt(data_tabel_beweging) %>% 
+  # Per default wordt de tabel gecentreerd op de pagina. Zet deze volledig naar links.
+  tab_options(table.margin.left = 0,
+              table.margin.right = 0,
+              table.width = "100%") %>%
+  # Jaartallen (kolomnamen) en tekst van eerste kolom vetgedrukt
+  tab_style(style = cell_text(weight = "bold"), locations = cells_column_labels()) 
+```
+:::
+
+Een oorzaak-gevolgrelatie is niet altijd vast te stellen. Sporten en bewegen kan zorgen voor een betere mentale gezondheid, en tegelijkertijd kan je mentale gezondheid beïnvloeden hoeveel je sport of beweegt. Naast bewegen zijn er nog veel meer factoren die een invloed hebben op mentale gezondheid. [Onderzoek van de GGD Brabant-Zuidoost](https://www.ggdbzo.nl/app/uploads/sites/2/2024/05/Themakaart-leefomgeving-en-mentale-gezondheid-Brabant.pdf){target="_blank"} laat bijvoorbeeld zien dat Brabanders die vinden dat er voldoende groen in de buurt is minder vaak eenzaam of gestrest zijn en minder vaak psychische klachten hebben.
+
+In onderstaand knoppenmodel kun je aan verschillende knoppen met informatie over leefstijl, omgeving en demografie 'draaien' om te zien welke invloed dit heeft op de mentale gezondheid. Voor meer informatie over de gebruikte data, aannames en mogelijke beperkingen, zie de toelichting onderaan het bestand.
+
+
+:::{.column-page-right}
+
+## Knoppenmodel {.blauweBanner}
+
+
+```{shinylive-r}
+#| standalone: true
+#| viewerHeight: 600
+#| file: "data/modeldata.csv"
+
+# library(shiny)
+# library(bslib)
+# 
+# theme <- bs_theme(font_scale = 1.5)
+# 
+# # Define UI for app that draws a histogram ----
+# ui <- page_sidebar(theme = theme,
+#   sidebar = sidebar(open = "open",
+#     numericInput("n", "Sample count", 100),
+#     checkboxInput("pause", "Pause", FALSE),
+#   ),
+#   plotOutput("plot", width=1100)
+# )
+# 
+# server <- function(input, output, session) {
+#   data <- reactive({
+#     input$resample
+#     if (!isTRUE(input$pause)) {
+#       invalidateLater(1000)
+#     }
+#     rnorm(input$n)
+#   })
+#   
+#   output$plot <- renderPlot({
+#     hist(data(),
+#       breaks = 40,
+#       xlim = c(-2, 2),
+#       ylim = c(0, 1),
+#       lty = "blank",
+#       xlab = "value",
+#       freq = FALSE,
+#       main = ""
+#     )
+#     
+#     x <- seq(from = -2, to = 2, length.out = 500)
+#     y <- dnorm(x)
+#     lines(x, y, lwd=1.5)
+#     
+#     lwd <- 5
+#     abline(v=0, col="red", lwd=lwd, lty=2)
+#     abline(v=mean(data()), col="blue", lwd=lwd, lty=1)
+# 
+#     legend(legend = c("Normal", "Mean", "Sample mean"),
+#       col = c("black", "red", "blue"),
+#       lty = c(1, 2, 1),
+#       lwd = c(1, lwd, lwd),
+#       x = 1,
+#       y = 0.9
+#     )
+#   }, res=140)
+# }
+# 
+# # Create Shiny app ----
+# shinyApp(ui = ui, server = server)
+
+
+
+library(shiny)
+library(bslib)
+library(rio)
+library(shinyWidgets)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(ggimage)
+library(sjlabelled)
+
+# load("data/dataframe_knoppenmodel_mentale_gezondheid_2024-08-26.RData")
+# load("data/scenario_2024-08-26.RData")
+
+# modeldata <- read.csv("data/modeldata.csv")
+
+a <- c("Ja", "Nee")
+
+ui <- page_sidebar(theme = theme,
+  sidebar = sidebar(open = "open",
+    awesomeRadio(
+                                       inputId = "LEEFTIJDCAT4P",
+                                       label = HTML("<b>Leeftijd</b>"),
+                                       # choices = c(unique(modeldata$LEEFTIJDCAT4P)),
+                                       choices = a,
+                                       status = "primary"
+                                     ),
+  )
+)
+
+# ui <- page_sidebar(theme = theme,
+#   sidebar = sidebar(open = "open",
+#     numericInput("n", "Sample count", 100),
+#     checkboxInput("pause", "Pause", FALSE),
+#   ),
+#   plotOutput("plot", width=1100)
+# )
+
+# 
+# # Define UI for app that draws a histogram ----
+# ui <- page_sidebar(theme = theme,
+#                    sidebar = sidebar(open = "open",
+#                                      awesomeRadio(
+#                                        inputId = "LEEFTIJDCAT4P",
+#                                        label = HTML("<b>Leeftijd</b>"),
+#                                        choices = c(levels(modeldata$LEEFTIJDCAT4P)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "GESLACHT",
+#                                        label = HTML("<b>Geslacht</b>"),
+#                                        choices = c(levels(modeldata$GESLACHT)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "bewegen_3cat",
+#                                        label = HTML("<b>Bewegen (uren per week)</b>"),
+#                                        choices = c(levels(modeldata$bewegen_3cat)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "roker",
+#                                        label = HTML("<b>Rookstatus</b>"),
+#                                        choices = c(levels(modeldata$roker)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "zware_drinker",
+#                                        label = HTML("<b>(Zware) drinker</b>"),
+#                                        choices = c(levels(modeldata$zware_drinker)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "obesitas",
+#                                        label = HTML("<b>Heeft obesitas</b>"),
+#                                        choices = c(levels(modeldata$obesitas)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "moeite_rondkomen_2cat",
+#                                        label = HTML("<b>Moeite met rondkomen</b>"),
+#                                        choices = c(levels(modeldata$moeite_rondkomen_2cat)),
+#                                        status = "primary"
+#                                      ),
+#                                      awesomeRadio(
+#                                        inputId = "UITSPRAAKBUURT3_CAT",
+#                                        label = HTML("<b>Vindt buurt aantrekkelijk \nom in te bewegen</b>"),
+#                                        choices = c(levels(modeldata$UITSPRAAKBUURT3_CAT)),
+#                                        status = "primary"
+#                                      )
+#                    ),
+#                    plotOutput('plot', width = "100%", height = "150px"),
+#                    tableOutput('data')
+# )
+# 
+
+server <- function(input, output, session) {
+#   
+#   knoppenmodel <- c("bewegen_3cat", "roker", "obesitas", "LEEFTIJDCAT4P", "GESLACHT", "zware_drinker", "moeite_rondkomen_2cat", "UITSPRAAKBUURT3_CAT")
+#   
+#   
+#   datasetsum <- reactive({
+#     modeldata[modeldata$moeite_rondkomen_2cat == input$moeite_rondkomen_2cat &
+#                 modeldata$bewegen_3cat == input$bewegen_3cat & 
+#                 modeldata$obesitas == input$obesitas &
+#                 modeldata$roker == input$roker &
+#                 modeldata$zware_drinker == input$zware_drinker &
+#                 modeldata$LEEFTIJDCAT4P == input$LEEFTIJDCAT4P &
+#                 modeldata$GESLACHT == input$GESLACHT &
+#                 modeldata$UITSPRAAKBUURT3_CAT == input$UITSPRAAKBUURT3_CAT,]%>%
+#       summarise(min = min(MHI5_voorspeld, na.rm = T),
+#                 mean = mean(MHI5_voorspeld, na.rm = T),
+#                 max = max(MHI5_voorspeld, na.rm =T))
+#   })
+#   
+#   
+#   scen_react <- reactive({
+#     scenario %>%
+#       filter(Leeftijd == input$LEEFTIJDCAT4P) %>%
+#       mutate(Gekozen = unlist(
+#         modeldata[modeldata$GESLACHT == input$GESLACHT &
+#                     modeldata$bewegen_3cat == input$bewegen_3cat &
+#                     modeldata$roker == input$roker &
+#                     modeldata$zware_drinker == input$zware_drinker &
+#                     modeldata$obesitas == input$obesitas &
+#                     modeldata$moeite_rondkomen_2cat == input$moeite_rondkomen_2cat &
+#                     modeldata$LEEFTIJDCAT4P == input$LEEFTIJDCAT4P &
+#                     modeldata$UITSPRAAKBUURT3_CAT == input$UITSPRAAKBUURT3_CAT,] %>%
+#           mutate(MHI5_voorspeld_absoluut = as.factor(round(MHI5_voorspeld_absoluut,1))) %>%
+#           dplyr::select(MHI5_voorspeld_absoluut, all_of(knoppenmodel)[-4]))
+#       ) %>%
+#       dplyr::select(-Leeftijd) %>% #leeftijd er uit die voegen we later handmatig toe
+#       bind_rows(c(Indicator = "Leeftijd", Slechtste = input$LEEFTIJDCAT4P,
+#                   Gekozen = input$LEEFTIJDCAT4P, Beste = input$LEEFTIJDCAT4P), .) %>%
+#       rename("Variabele" = Indicator,
+#              "Minst gunstige \n scenario" = Slechtste,
+#              "Gekozen \nscenario" = Gekozen,
+#              "Meest gunstige \n scenario" = Beste)
+#   })
+#     
+#     quint <-  as.numeric(quantile(modeldata$MHI5_voorspeld, probs = seq(0,1,0.2),na.rm = T))
+#     
+#     output$plot <- renderPlot({
+#       ggplot(
+#         datasetsum(),
+#         aes(x= mean,y = 1)) +
+#         #slechter
+#         annotate("rect", xmin = quint[1], xmax = quint[2], ymin = 0.9, ymax = 1, fill = "#0084BC") +
+#         #minder slecht
+#         annotate("rect", xmin = quint[2], xmax = quint[3], ymin = 0.9, ymax = 1, fill = "#37BEF4") +
+#         #neutraal
+#         annotate("rect", xmin = quint[3], xmax =quint[4], ymin = 0.9, ymax = 1, fill = "#FEF8DE") +
+#         #beter
+#         annotate("rect", xmin = quint[4], xmax = quint[5], ymin = 0.9, ymax = 1, fill = "#FED65A") +
+#         #best
+#         annotate("rect", xmin = quint[5], xmax = quint[6], ymin = 0.9, ymax = 1, fill = "#FEC80F") +
+#         geom_image(aes(image = "images/brainstorm.png"), size = 0.5) + 
+#         scale_y_continuous(limits = c(0.9,1.1)) +
+#         scale_x_continuous(breaks = c(((quint[1]+quint)[2]/2),
+#                                       ((quint[2]+quint)[3]/2),
+#                                       ((quint[3]+quint)[4]/2),
+#                                       ((quint[4]+quint)[5]/2),
+#                                       ((quint[5]+quint)[6]/2)), 
+#                            labels = c("Slechter", "Iets \nslechter", "Neutraal",  "Iets \nbeter", "Beter")) +
+#         ylab(" ") + xlab(" ") + 
+#         theme(panel.grid = element_blank(), 
+#               axis.text.y = element_blank(),
+#               axis.ticks.y = element_blank(),
+#               panel.background = element_blank(),
+#               axis.text.x = element_text(size = rel(1.1), face = "bold"))
+#     
+#     })
+#     
+#     output$data <- renderTable({
+#       scen_react() %>%
+#         replace(is.na(.), "Niet beschikbaar*")
+#     })
+#   
+}
+
+# Create Shiny app ----
+shinyApp(ui = ui, server = server)
+```
+
+:::
+
