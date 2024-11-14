@@ -1,0 +1,17 @@
+project:
+  type: website
+
+website:
+  title: "Knoppenmodel Beweging"
+
+format:
+  html:
+    theme: default
+    css: styles.css
+    toc: true
+    toc-location: left
+    toc-depth: 2
+    toc-title: "Inhoudsopgave"
+
+
+
